@@ -1,3 +1,5 @@
+//const { assert } = require("console");
+
 const StarNotary = artifacts.require("StarNotary");
 
 var accounts;
@@ -65,12 +67,22 @@ it('lets user2 buy a star and decreases its balance in ether', async() => {
     let balance = web3.utils.toWei(".05", "ether");
     await instance.createStar('awesome star', starId, {from: user1});
     await instance.putStarUpForSale(starId, starPrice, {from: user1});
-    let balanceOfUser1BeforeTransaction = await web3.eth.getBalance(user2);
-    const balanceOfUser2BeforeTransaction = await web3.eth.getBalance(user2);
-    await instance.buyStar(starId, {from: user2, value: balance, gasPrice:0});
-    const balanceAfterUser2BuysStar = await web3.eth.getBalance(user2);
-    let value = Number(balanceOfUser2BeforeTransaction) - Number(balanceAfterUser2BuysStar);
-    assert.equal(value, starPrice);
+    // let balanceOfUser1BeforeTransaction = await web3.eth.getBalance(user2);
+    // const balanceOfUser2BeforeTransaction = await web3.eth.getBalance(user2);
+    // await instance.buyStar(starId, {from: user2, value: balance, gasPrice:0});
+    // const balanceAfterUser2BuysStar = await web3.eth.getBalance(user2);
+    // let value = Number(balanceOfUser2BeforeTransaction) - Number(balanceAfterUser2BuysStar);
+    // assert.equal(value, starPrice);
+    const balanceOfUser2BeforeTransaction = web3.utils.toBN(await web3.eth.getBalance(user2));
+    const txInfo = await instance.buyStar(starId, {from: user2, value: balance});
+    const balanceAfterUser2BuysStar = web3.utils.toBN(await web3.eth.getBalance(user2));
+    const tx = await web3.eth.getTransaction(txInfo.tx);
+    const gasPrice = web3.utils.toBN(tx.gasPrice);
+    const gasUsed = web3.utils.toBN(txInfo.receipt.gasUsed);
+    const txGasCost = gasPrice.mul(gasUsed);
+    const starPriceBN = web3.utils.toBN(starPrice);
+    const expectedFinalBalance = balanceOfUser2BeforeTransaction.sub(starPriceBN).sub(txGasCost);
+    assert.equal(expectedFinalBalance.toString(), balanceAfterUser2BuysStar.toString());
 });
 
 // Implement Task 2 Add supporting unit tests
